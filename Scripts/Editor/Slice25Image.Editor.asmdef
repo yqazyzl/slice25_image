@@ -1,0 +1,16 @@
+{
+    "name": "Slice25Image.Editor",
+    "rootNamespace": "",
+    "references": [
+        "Slice25Image.Runtime"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

@@ -1,0 +1,27 @@
+{
+  "name": "com.yqazyzl.slice25_image",
+  "version": "1.0.0",
+  "displayName": "Slice25Image",
+  "description": "A Unity package that slices a sprite into 25 slices instead of the usual 9, allowing for more flexible UI designs.",
+  "unity": "2022.3",
+  "keywords": [
+    "nine-patch",
+    "9-slice",
+    "sprite editor",
+    "25-slice",
+    "twenty-five",
+    "slicer",
+    "UI",
+    "Unity",
+    "graphics"
+  ],
+  "author": {
+    "name": "yqazyzl",
+    "url": "https://github.com/yqazyzl/slice25_image"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:yqazyzl/slice25_image.git"
+  },
+  "license": "MIT"
+}
