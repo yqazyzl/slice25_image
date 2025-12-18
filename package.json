@@ -1,6 +1,6 @@
 {
   "name": "com.yqazyzl.slice25_image",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "displayName": "Slice25Image",
   "description": "A Unity package that slices a sprite into 25 slices instead of the usual 9, allowing for more flexible UI designs.",
   "unity": "2022.3",
