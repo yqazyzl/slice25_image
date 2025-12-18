@@ -32,6 +32,28 @@ namespace Slice25Image.Editor
             PlaceUIElementRoot(go, menuCommand);
         }
 
+        [MenuItem("GameObject/UI/HalfImage", false, 2000)]
+        static public void AddHalfImage(MenuCommand menuCommand)
+        {
+            // Find or create a Canvas
+            Canvas canvas = Object.FindFirstObjectByType<Canvas>();
+            if (canvas == null)
+            {
+                var canvasGo = new GameObject("Canvas");
+                canvas = canvasGo.AddComponent<Canvas>();
+                canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+                canvasGo.AddComponent<CanvasScaler>();
+                canvasGo.AddComponent<GraphicRaycaster>();
+
+                Undo.RegisterCreatedObjectUndo(canvasGo, "Create Canvas");
+            }
+
+            // Create the TwentyFiveSliceImage GameObject
+            var go = new GameObject("HalfImage", typeof(RectTransform));
+            var image = go.AddComponent<Runtime.HalfImage>();
+            PlaceUIElementRoot(go, menuCommand);
+        }
+
         private static void PlaceUIElementRoot(GameObject element, MenuCommand menuCommand)
         {
             GameObject parent = menuCommand.context as GameObject;
