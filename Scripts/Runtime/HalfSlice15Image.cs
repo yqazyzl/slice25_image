@@ -9,13 +9,14 @@ using UnityEditor;
 namespace Slice25Image.Runtime
 {
     [RequireComponent(typeof(CanvasRenderer))]
-    [AddComponentMenu("UI/HalfImage", 11)]
-    public class HalfImage : Image
+    [AddComponentMenu("UI/HalfSlice15Image", 11)]
+    public class HalfSlice15Image : Image
     {
+        [SerializeField] private int m_CenterWidth; //Top
+
         private Sprite activeSprite { get { return m_OverrideSprite != null ? m_OverrideSprite : sprite; } }
         [NonSerialized]
         private Sprite m_OverrideSprite;
-        public int TopY; //Top
         private Vector2 pivot;
         private RectTransform _target;
         private RectTransform target
@@ -30,10 +31,10 @@ namespace Slice25Image.Runtime
             }
 
         }
+
         /// <summary>
         /// Generate vertices for a 9-sliced Image.
         /// </summary>
-        /// 
         private void GenerateSlicedSprite(VertexHelper toFill)
         {
             if (!hasBorder)
@@ -60,12 +61,28 @@ namespace Slice25Image.Runtime
             }
 
             Rect rect = GetPixelAdjustedRect();
-            float tx = (rect.width >= activeSprite.rect.width * 2 ? activeSprite.rect.width : rect.width * 0.5f) / multipliedPixelsPerUnit;
-            float ty = (rect.height >= activeSprite.rect.height ? TopY : TopY * rect.height / activeSprite.rect.height) / multipliedPixelsPerUnit;
 
-            float[] vertXs = { padding.x , tx, rect.width - tx, rect.width };
-            float[] vertYs = { padding.y, ty, rect.height };
-            for (int i = 0; i < vertXs.Length; i++) {
+            Vector4 adjustedBorders = GetAdjustedBorders(border / multipliedPixelsPerUnit, rect);
+            padding = padding / multipliedPixelsPerUnit;
+
+            float w = ((rect.width - m_CenterWidth) * 0.5f) - activeSprite.rect.width;
+            float[] vertXs = new float[6];
+            vertXs[0] = padding.x;
+            vertXs[1] = vertXs[0] + w;
+            vertXs[2] = vertXs[1] + activeSprite.rect.width;
+            vertXs[3] = vertXs[2] + m_CenterWidth;
+            vertXs[4] = vertXs[3] + activeSprite.rect.width;
+            vertXs[5] = rect.width - padding.z;
+
+            float[] vertYs = {
+                padding.y,
+                adjustedBorders.y,
+                rect.height - adjustedBorders.w,
+                rect.height - padding.w,
+            };
+
+            for (int i = 0; i < vertXs.Length; i++)
+            {
                 vertXs[i] += rect.x;
             }
 
@@ -74,24 +91,37 @@ namespace Slice25Image.Runtime
                 vertYs[i] += rect.y;
             }
 
-            float[] uvXs = { outer.x, outer.z, outer.z, outer.x};
-            float[] uvYs = { outer.y, (outer.w - outer.y) * (TopY / activeSprite.rect.height), outer.w };
+            float[] uvXs = {
+                outer.x,
+                outer.x,
+                outer.z,
+                outer.z,
+                outer.x,
+                outer.x,
+            };
 
-            if (TopY == 325) {
-                Debug.Log("11");
-            }
+            float[] uvYs = {
+                outer.y,
+                inner.y,
+                inner.w,
+                outer.w,
+            };
 
             toFill.Clear();
 
-            for (int x = 0; x < 3; ++x)
+            for (int x = 0; x < 5; ++x)
             {
                 int x2 = x + 1;
 
-                for (int y = 0; y < 2; ++y)
+                for (int y = 0; y < 3; ++y)
                 {
+
                     int y2 = y + 1;
 
-                    Debug.Log($"GenerateSlicedSprite: x:{x}, y:{y}|x:{x2}, y:{y2}");
+                    // Check for zero or negative dimensions to prevent invalid quads (UUM-71372)
+                    //if ((vertXs[x2] - vertXs[x] <= 0) || (vertXs[y2] - vertXs[y] <= 0))
+                    //    continue;
+
                     AddQuad(toFill,
                         new Vector2(vertXs[x], vertYs[y]),
                         new Vector2(vertXs[x2], vertYs[y2]),
@@ -101,7 +131,6 @@ namespace Slice25Image.Runtime
                 }
             }
         }
-
         private Vector4 GetAdjustedBorders(Vector4 border, Rect adjustedRect)
         {
             Rect originalRect = rectTransform.rect;
