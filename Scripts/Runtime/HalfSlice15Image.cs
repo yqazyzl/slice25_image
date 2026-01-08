@@ -66,13 +66,15 @@ namespace Slice25Image.Runtime
             padding = padding / multipliedPixelsPerUnit;
 
             float w = ((rect.width - m_CenterWidth) * 0.5f) - activeSprite.rect.width;
-            float[] vertXs = new float[6];
+            float[] vertXs = new float[8];
             vertXs[0] = padding.x;
-            vertXs[1] = vertXs[0] + w;
-            vertXs[2] = vertXs[1] + activeSprite.rect.width;
-            vertXs[3] = vertXs[2] + m_CenterWidth;
-            vertXs[4] = vertXs[3] + activeSprite.rect.width;
-            vertXs[5] = rect.width - padding.z;
+            vertXs[1] = vertXs[0] + adjustedBorders.x;
+            vertXs[2] = vertXs[1] + w;
+            vertXs[3] = vertXs[2] + activeSprite.rect.width - adjustedBorders.x;
+            vertXs[4] = vertXs[3] + m_CenterWidth;
+            vertXs[5] = vertXs[4] + activeSprite.rect.width - adjustedBorders.x;
+            vertXs[6] = vertXs[5] + w;
+            vertXs[7] = rect.width - padding.z;
 
             float[] vertYs = {
                 padding.y,
@@ -93,10 +95,12 @@ namespace Slice25Image.Runtime
 
             float[] uvXs = {
                 outer.x,
-                outer.x,
+                inner.x,
+                inner.x,
                 outer.z,
                 outer.z,
-                outer.x,
+                inner.x,
+                inner.x,
                 outer.x,
             };
 
@@ -109,7 +113,7 @@ namespace Slice25Image.Runtime
 
             toFill.Clear();
 
-            for (int x = 0; x < 5; ++x)
+            for (int x = 0; x < 7; ++x)
             {
                 int x2 = x + 1;
 
