@@ -23,5 +23,8 @@
     "type": "git",
     "url": "git@github.com:yqazyzl/slice25_image.git"
   },
+  "dependencies": {
+    "com.unity.ugui": "1.0.0"
+  },
   "license": "MIT"
 }

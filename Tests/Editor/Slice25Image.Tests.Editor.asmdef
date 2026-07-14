@@ -1,0 +1,12 @@
+{
+    "name": "Slice25Image.Tests.Editor",
+    "references": [
+        "Slice25Image.Runtime"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "optionalUnityReferences": [
+        "TestAssemblies"
+    ]
+}

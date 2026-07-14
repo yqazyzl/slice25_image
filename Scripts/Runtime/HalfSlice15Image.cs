@@ -1,10 +1,5 @@
 using UnityEngine;
 using UnityEngine.UI;
-using System;
-
-#if UNITY_EDITOR
-using UnityEditor;
-#endif
 
 namespace Slice25Image.Runtime
 {
@@ -12,266 +7,126 @@ namespace Slice25Image.Runtime
     [AddComponentMenu("UI/HalfSlice15Image", 11)]
     public class HalfSlice15Image : Image
     {
-        [SerializeField] private int m_CenterWidth; //Top
+        private static readonly float[] VertexXs = new float[8];
+        private static readonly float[] VertexYs = new float[4];
+        private static readonly float[] UvXs = new float[8];
+        private static readonly float[] UvYs = new float[4];
 
-        private Sprite activeSprite { get { return m_OverrideSprite != null ? m_OverrideSprite : sprite; } }
-        [NonSerialized]
-        private Sprite m_OverrideSprite;
-        private Vector2 pivot;
-        private RectTransform _target;
-        private RectTransform target
+        [SerializeField, Min(0)]
+        private int m_CenterWidth;
+
+        public int centerWidth
         {
-            get
+            get => m_CenterWidth;
+            set
             {
-                if (_target == null)
+                int clampedValue = Mathf.Max(0, value);
+                if (m_CenterWidth == clampedValue)
                 {
-                    _target = transform as RectTransform;
-                }
-                return _target;
-            }
-
-        }
-
-        /// <summary>
-        /// Generate vertices for a 9-sliced Image.
-        /// </summary>
-        private void GenerateSlicedSprite(VertexHelper toFill)
-        {
-            if (!hasBorder)
-            {
-                GenerateSimpleSprite(toFill, false);
-                return;
-            }
-
-            Vector4 outer, inner, padding, border;
-
-            if (activeSprite != null)
-            {
-                outer = UnityEngine.Sprites.DataUtility.GetOuterUV(activeSprite);
-                inner = UnityEngine.Sprites.DataUtility.GetInnerUV(activeSprite);
-                padding = UnityEngine.Sprites.DataUtility.GetPadding(activeSprite);
-                border = activeSprite.border;
-            }
-            else
-            {
-                outer = Vector4.zero;
-                inner = Vector4.zero;
-                padding = Vector4.zero;
-                border = Vector4.zero;
-            }
-
-            Rect rect = GetPixelAdjustedRect();
-
-            Vector4 adjustedBorders = GetAdjustedBorders(border / multipliedPixelsPerUnit, rect);
-            padding = padding / multipliedPixelsPerUnit;
-
-            float w = ((rect.width - m_CenterWidth) * 0.5f) - activeSprite.rect.width;
-            float[] vertXs = new float[8];
-            vertXs[0] = padding.x;
-            vertXs[1] = vertXs[0] + adjustedBorders.x;
-            vertXs[2] = vertXs[1] + w;
-            vertXs[3] = vertXs[2] + activeSprite.rect.width - adjustedBorders.x;
-            vertXs[4] = vertXs[3] + m_CenterWidth;
-            vertXs[5] = vertXs[4] + activeSprite.rect.width - adjustedBorders.x;
-            vertXs[6] = vertXs[5] + w;
-            vertXs[7] = rect.width - padding.z;
-
-            float[] vertYs = {
-                padding.y,
-                adjustedBorders.y,
-                rect.height - adjustedBorders.w,
-                rect.height - padding.w,
-            };
-
-            for (int i = 0; i < vertXs.Length; i++)
-            {
-                vertXs[i] += rect.x;
-            }
-
-            for (int i = 0; i < vertYs.Length; i++)
-            {
-                vertYs[i] += rect.y;
-            }
-
-            float[] uvXs = {
-                outer.x,
-                inner.x,
-                inner.x,
-                outer.z,
-                outer.z,
-                inner.x,
-                inner.x,
-                outer.x,
-            };
-
-            float[] uvYs = {
-                outer.y,
-                inner.y,
-                inner.w,
-                outer.w,
-            };
-
-            toFill.Clear();
-
-            for (int x = 0; x < 7; ++x)
-            {
-                int x2 = x + 1;
-
-                for (int y = 0; y < 3; ++y)
-                {
-
-                    int y2 = y + 1;
-
-                    // Check for zero or negative dimensions to prevent invalid quads (UUM-71372)
-                    //if ((vertXs[x2] - vertXs[x] <= 0) || (vertXs[y2] - vertXs[y] <= 0))
-                    //    continue;
-
-                    AddQuad(toFill,
-                        new Vector2(vertXs[x], vertYs[y]),
-                        new Vector2(vertXs[x2], vertYs[y2]),
-                        color,
-                        new Vector2(uvXs[x], uvYs[y]),
-                        new Vector2(uvXs[x2], uvYs[y2]));
-                }
-            }
-        }
-        private Vector4 GetAdjustedBorders(Vector4 border, Rect adjustedRect)
-        {
-            Rect originalRect = rectTransform.rect;
-
-            for (int axis = 0; axis <= 1; axis++)
-            {
-                float borderScaleRatio;
-
-                // The adjusted rect (adjusted for pixel correctness)
-                // may be slightly larger than the original rect.
-                // Adjust the border to match the adjustedRect to avoid
-                // small gaps between borders (case 833201).
-                if (originalRect.size[axis] != 0)
-                {
-                    borderScaleRatio = adjustedRect.size[axis] / originalRect.size[axis];
-                    border[axis] *= borderScaleRatio;
-                    border[axis + 2] *= borderScaleRatio;
+                    return;
                 }
 
-                // If the rect is smaller than the combined borders, then there's not room for the borders at their normal size.
-                // In order to avoid artefacts with overlapping borders, we scale the borders down to fit.
-                float combinedBorders = border[axis] + border[axis + 2];
-                if (adjustedRect.size[axis] < combinedBorders && combinedBorders != 0)
-                {
-                    borderScaleRatio = adjustedRect.size[axis] / combinedBorders;
-                    border[axis] *= borderScaleRatio;
-                    border[axis + 2] *= borderScaleRatio;
-                }
-            }
-            return border;
-        }
-
-        /// <summary>
-        /// Generate vertices for a simple Image.
-        /// </summary>
-        void GenerateSimpleSprite(VertexHelper vh, bool lPreserveAspect)
-        {
-            Vector4 v = GetDrawingDimensions(lPreserveAspect);
-            var uv = (activeSprite != null) ? UnityEngine.Sprites.DataUtility.GetOuterUV(activeSprite) : Vector4.zero;
-
-            var color32 = color;
-            vh.Clear();
-            vh.AddVert(new Vector3(v.x, v.y), color32, new Vector2(uv.x, uv.y));
-            vh.AddVert(new Vector3(v.x, v.w), color32, new Vector2(uv.x, uv.w));
-            vh.AddVert(new Vector3(v.z, v.w), color32, new Vector2(uv.z, uv.w));
-            vh.AddVert(new Vector3(v.z, v.y), color32, new Vector2(uv.z, uv.y));
-
-            vh.AddTriangle(0, 1, 2);
-            vh.AddTriangle(2, 3, 0);
-        }
-
-        /// Image's dimensions used for drawing. X = left, Y = bottom, Z = right, W = top.
-        private Vector4 GetDrawingDimensions(bool shouldPreserveAspect)
-        {
-            var padding = activeSprite == null ? Vector4.zero : UnityEngine.Sprites.DataUtility.GetPadding(activeSprite);
-            var size = activeSprite == null ? Vector2.zero : new Vector2(activeSprite.rect.width, activeSprite.rect.height);
-
-            Rect r = GetPixelAdjustedRect();
-            // Debug.Log(string.Format("r:{2}, size:{0}, padding:{1}", size, padding, r));
-
-            int spriteW = Mathf.RoundToInt(size.x);
-            int spriteH = Mathf.RoundToInt(size.y);
-
-            var v = new Vector4(
-                padding.x / spriteW,
-                padding.y / spriteH,
-                (spriteW - padding.z) / spriteW,
-                (spriteH - padding.w) / spriteH);
-
-            if (shouldPreserveAspect && size.sqrMagnitude > 0.0f)
-            {
-                PreserveSpriteAspectRatio(ref r, size);
-            }
-
-            v = new Vector4(
-                r.x + r.width * v.x,
-                r.y + r.height * v.y,
-                r.x + r.width * v.z,
-                r.y + r.height * v.w
-            );
-
-            return v;
-        }
-
-        private void PreserveSpriteAspectRatio(ref Rect rect, Vector2 spriteSize)
-        {
-            var spriteRatio = spriteSize.x / spriteSize.y;
-            var rectRatio = rect.width / rect.height;
-
-            if (spriteRatio > rectRatio)
-            {
-                var oldHeight = rect.height;
-                rect.height = rect.width * (1.0f / spriteRatio);
-                rect.y += (oldHeight - rect.height) * rectTransform.pivot.y;
-            }
-            else
-            {
-                var oldWidth = rect.width;
-                rect.width = rect.height * spriteRatio;
-                rect.x += (oldWidth - rect.width) * rectTransform.pivot.x;
+                m_CenterWidth = clampedValue;
+                SetVerticesDirty();
             }
         }
 
-        static void AddQuad(VertexHelper vertexHelper, Vector2 posMin, Vector2 posMax, Color32 color, Vector2 uvMin, Vector2 uvMax)
-        {
-            int startIndex = vertexHelper.currentVertCount;
-
-            vertexHelper.AddVert(new Vector3(posMin.x, posMin.y, 0), color, new Vector2(uvMin.x, uvMin.y));
-            vertexHelper.AddVert(new Vector3(posMin.x, posMax.y, 0), color, new Vector2(uvMin.x, uvMax.y));
-            vertexHelper.AddVert(new Vector3(posMax.x, posMax.y, 0), color, new Vector2(uvMax.x, uvMax.y));
-            vertexHelper.AddVert(new Vector3(posMax.x, posMin.y, 0), color, new Vector2(uvMax.x, uvMin.y));
-
-            vertexHelper.AddTriangle(startIndex, startIndex + 1, startIndex + 2);
-            vertexHelper.AddTriangle(startIndex + 2, startIndex + 3, startIndex);
-        }
+        private Sprite ActiveSprite => overrideSprite;
 
         protected override void OnPopulateMesh(VertexHelper toFill)
         {
+            Sprite activeSprite = ActiveSprite;
             if (activeSprite == null)
             {
                 base.OnPopulateMesh(toFill);
                 return;
             }
 
-            GenerateSlicedSprite(toFill);
+            if (!hasBorder)
+            {
+                SlicedImageUtility.GenerateSimpleSprite(this, activeSprite, toFill);
+                return;
+            }
+
+            GenerateMirroredSlicedSprite(activeSprite, toFill);
         }
 
-        //#if UNITY_EDITOR
-        //    override protected void OnValidate()
-        //    {
-        //        base.OnValidate();
-        //        if (target.pivot != pivot) {
-        //            target.pivot = pivot;
-        //        }
-        //    }
-        //#endif
+        private void GenerateMirroredSlicedSprite(Sprite activeSprite, VertexHelper toFill)
+        {
+            Vector4 outer = UnityEngine.Sprites.DataUtility.GetOuterUV(activeSprite);
+            Vector4 inner = UnityEngine.Sprites.DataUtility.GetInnerUV(activeSprite);
+            Vector4 padding = UnityEngine.Sprites.DataUtility.GetPadding(activeSprite) / multipliedPixelsPerUnit;
+            Rect rect = GetPixelAdjustedRect();
+            Vector4 adjustedBorders = SlicedImageUtility.GetAdjustedBorders(
+                this,
+                activeSprite.border / multipliedPixelsPerUnit,
+                rect);
+
+            float contentStart = rect.x + padding.x;
+            float contentEnd = rect.xMax - padding.z;
+            float contentWidth = Mathf.Max(0f, contentEnd - contentStart);
+            float center = Mathf.Min(m_CenterWidth, contentWidth);
+            float sideWidth = (contentWidth - center) * 0.5f;
+            float naturalSideWidth = activeSprite.rect.width / multipliedPixelsPerUnit;
+            float sampledSideWidth = Mathf.Min(naturalSideWidth, sideWidth);
+            float borderWidth = Mathf.Min(adjustedBorders.x, sampledSideWidth);
+            float stretchWidth = sideWidth - sampledSideWidth;
+
+            VertexXs[0] = contentStart;
+            VertexXs[1] = VertexXs[0] + borderWidth;
+            VertexXs[2] = VertexXs[1] + stretchWidth;
+            VertexXs[3] = VertexXs[0] + sideWidth;
+            VertexXs[4] = VertexXs[3] + center;
+            VertexXs[5] = VertexXs[4] + sampledSideWidth - borderWidth;
+            VertexXs[6] = VertexXs[5] + stretchWidth;
+            VertexXs[7] = contentEnd;
+
+            VertexYs[0] = rect.y + padding.y;
+            VertexYs[1] = rect.y + adjustedBorders.y;
+            VertexYs[2] = rect.yMax - adjustedBorders.w;
+            VertexYs[3] = rect.yMax - padding.w;
+
+            UvXs[0] = outer.x;
+            UvXs[1] = inner.x;
+            UvXs[2] = inner.x;
+            UvXs[3] = outer.z;
+            UvXs[4] = outer.z;
+            UvXs[5] = inner.x;
+            UvXs[6] = inner.x;
+            UvXs[7] = outer.x;
+
+            UvYs[0] = outer.y;
+            UvYs[1] = inner.y;
+            UvYs[2] = inner.w;
+            UvYs[3] = outer.w;
+
+            toFill.Clear();
+            for (int x = 0; x < VertexXs.Length - 1; x++)
+            {
+                for (int y = 0; y < VertexYs.Length - 1; y++)
+                {
+                    if (!SlicedImageUtility.HasPositiveArea(VertexXs, x, VertexYs, y))
+                    {
+                        continue;
+                    }
+
+                    SlicedImageUtility.AddQuad(
+                        toFill,
+                        new Vector2(VertexXs[x], VertexYs[y]),
+                        new Vector2(VertexXs[x + 1], VertexYs[y + 1]),
+                        color,
+                        new Vector2(UvXs[x], UvYs[y]),
+                        new Vector2(UvXs[x + 1], UvYs[y + 1]));
+                }
+            }
+        }
+
+#if UNITY_EDITOR
+        protected override void OnValidate()
+        {
+            m_CenterWidth = Mathf.Max(0, m_CenterWidth);
+            base.OnValidate();
+        }
+#endif
     }
 }
-
-

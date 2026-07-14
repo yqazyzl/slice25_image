@@ -5,75 +5,34 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 namespace Slice25Image.Editor
-{ 
+{
     public static class TwentyFiveSliceImageMenu
     {
         private const string kUILayerName = "UI";
 
         [MenuItem("GameObject/UI/Slice25Image", false, 2000)]
-        static public void AddImage(MenuCommand menuCommand)
+        public static void AddImage(MenuCommand menuCommand)
         {
-            // Find or create a Canvas
-            Canvas canvas = Object.FindFirstObjectByType<Canvas>();
-            if (canvas == null)
-            {
-                var canvasGo = new GameObject("Canvas");
-                canvas = canvasGo.AddComponent<Canvas>();
-                canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-                canvasGo.AddComponent<CanvasScaler>();
-                canvasGo.AddComponent<GraphicRaycaster>();
-
-                Undo.RegisterCreatedObjectUndo(canvasGo, "Create Canvas");
-            }
-
-            // Create the TwentyFiveSliceImage GameObject
-            var go = new GameObject("Slice25Image", typeof(RectTransform));
-            var image = go.AddComponent<Runtime.Slice25Image>();
-            PlaceUIElementRoot(go, menuCommand);
+            CreateUIElement<Runtime.Slice25Image>("Slice25Image", menuCommand);
         }
 
         [MenuItem("GameObject/UI/HalfImage", false, 2000)]
-        static public void AddHalfImage(MenuCommand menuCommand)
+        public static void AddHalfImage(MenuCommand menuCommand)
         {
-            // Find or create a Canvas
-            Canvas canvas = Object.FindFirstObjectByType<Canvas>();
-            if (canvas == null)
-            {
-                var canvasGo = new GameObject("Canvas");
-                canvas = canvasGo.AddComponent<Canvas>();
-                canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-                canvasGo.AddComponent<CanvasScaler>();
-                canvasGo.AddComponent<GraphicRaycaster>();
-
-                Undo.RegisterCreatedObjectUndo(canvasGo, "Create Canvas");
-            }
-
-            // Create the TwentyFiveSliceImage GameObject
-            var go = new GameObject("HalfImage", typeof(RectTransform));
-            var image = go.AddComponent<Runtime.HalfImage>();
-            PlaceUIElementRoot(go, menuCommand);
+            CreateUIElement<Runtime.HalfImage>("HalfImage", menuCommand);
         }
 
         [MenuItem("GameObject/UI/HalfSlice15Image", false, 2000)]
-        static public void AddHalfSlice15Image(MenuCommand menuCommand)
+        public static void AddHalfSlice15Image(MenuCommand menuCommand)
         {
-            // Find or create a Canvas
-            Canvas canvas = Object.FindFirstObjectByType<Canvas>();
-            if (canvas == null)
-            {
-                var canvasGo = new GameObject("Canvas");
-                canvas = canvasGo.AddComponent<Canvas>();
-                canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-                canvasGo.AddComponent<CanvasScaler>();
-                canvasGo.AddComponent<GraphicRaycaster>();
+            CreateUIElement<Runtime.HalfSlice15Image>("HalfSlice15Image", menuCommand);
+        }
 
-                Undo.RegisterCreatedObjectUndo(canvasGo, "Create Canvas");
-            }
-
-            // Create the TwentyFiveSliceImage GameObject
-            var go = new GameObject("HalfSlice15Image", typeof(RectTransform));
-            var image = go.AddComponent<Runtime.HalfSlice15Image>();
-            PlaceUIElementRoot(go, menuCommand);
+        private static void CreateUIElement<T>(string name, MenuCommand menuCommand) where T : Component
+        {
+            GameObject element = ObjectFactory.CreateGameObject(name, typeof(RectTransform), typeof(T));
+            Undo.RegisterCreatedObjectUndo(element, "Create " + name);
+            PlaceUIElementRoot(element, menuCommand);
         }
 
         private static void PlaceUIElementRoot(GameObject element, MenuCommand menuCommand)
@@ -115,7 +74,7 @@ namespace Slice25Image.Editor
             Selection.activeGameObject = element;
         }
 
-        static public GameObject GetOrCreateCanvasGameObject()
+        public static GameObject GetOrCreateCanvasGameObject()
         {
             GameObject selectedGo = Selection.activeGameObject;
 
@@ -135,7 +94,7 @@ namespace Slice25Image.Editor
             return CreateNewUI();
         }
 
-        static bool IsValidCanvas(Canvas canvas)
+        private static bool IsValidCanvas(Canvas canvas)
         {
             if (canvas == null || !canvas.gameObject.activeInHierarchy)
                 return false;
@@ -148,13 +107,14 @@ namespace Slice25Image.Editor
             return StageUtility.GetStageHandle(canvas.gameObject) == StageUtility.GetCurrentStageHandle();
         }
 
-        static public GameObject CreateNewUI()
+        public static GameObject CreateNewUI()
         {
             // Root for the UI
             var root = ObjectFactory.CreateGameObject("Canvas", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
             root.layer = LayerMask.NameToLayer(kUILayerName);
             Canvas canvas = root.GetComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            Undo.RegisterCreatedObjectUndo(root, "Create Canvas");
 
             // Works for all stages.
             StageUtility.PlaceGameObjectInCurrentStage(root);
